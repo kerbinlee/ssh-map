@@ -12,7 +12,12 @@ class IpDataApi(Resource):
     def get(self):
         return ipData.ipmap
 
+class IpDatesApi(Resource):
+    def get(self, ip):
+        return ipData.getIpTimes(ip)
+
 api.add_resource(IpDataApi, '/')
+api.add_resource(IpDatesApi, '/<string:ip>')
 
 if __name__ == '__main__':
     app.run(debug=True)
