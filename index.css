@@ -6,3 +6,7 @@ body {
 #mapid {
     height: 100%;
 }
+
+.leaflet-container {
+    background: rgb(103, 177, 247);
+}
