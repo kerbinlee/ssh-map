@@ -26,6 +26,9 @@ class IpData:
             charset='utf-8',
             decode_responses=True)
 
+        lastParsedEntryTime = None
+        lastLogTime = self.redisDb.get("lastLogTime")
+
         with open('auth.log','r') as logFile:
             failedPattern = re.compile('.* Failed password for .* from [0-9]*[.][0-9]*[.][0-9]*[.][0-9]* ')
             datePattern = re.compile('^[A-Z][a-z]* [0-9]* [0-9:]*')
@@ -36,12 +39,23 @@ class IpData:
                 if lineResult != None:
                     dateStr = datePattern.search(lineResult.group(0)).group(0)
                     ipDate = datetime.strptime(dateStr, '%b %d %H:%M:%S').replace(year=date.today().year)
+                    lastParsedEntryTime = ipDate.timestamp()
                     ip = ipPattern.search(lineResult.group(0)).group(0)
-                    if (self.redisDb.get("ipdata:" + ip) is None):
-                        print("New ip " + ip)
-                        self.fetchNewIpData(ip)
-                    else:
-                        ipData = json.loads(self.redisDb.get("ipdata:" + ip))
-                        print("{} {}".format(ipData['latitude'], ipData['latitude']))
-                        self.ipmap[ip] = ipData
-                    # self.redisDb.rpush('iptimes:' + ip, ipDate.timestamp())
+                    if (lastLogTime is None or float(lastLogTime) < ipDate.timestamp()):
+                        if (self.redisDb.get("ipdata:" + ip) is None):
+                            print("New ip " + ip)
+                            self.fetchNewIpData(ip)
+                        self.redisDb.rpush('iptimes:' + ip, ipDate.timestamp())
+
+        matched_pairs = self.redisDb.scan_iter(match='ipdata:*')
+        for keyvalue in matched_pairs:
+            print(keyvalue)
+            ip = keyvalue.split(':')[1]
+            ipData = json.loads(self.redisDb.get(keyvalue))
+            print("{} {}".format(ipData['latitude'], ipData['latitude']))
+            self.ipmap[ip] = ipData
+
+        if (lastParsedEntryTime is not None and (lastLogTime is None or lastParsedEntryTime > float(lastLogTime))):
+            print("setting lastLogTime of {}".format(lastParsedEntryTime))
+            self.redisDb.set("lastLogTime", lastParsedEntryTime)
+                    
