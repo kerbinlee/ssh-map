@@ -1,4 +1,4 @@
-var mymap = L.map('mapid').setView([15, 0], 2);
+var mymap = L.map('mapid', {maxZoom: 19}).setView([15, 0], 2);
 
 var myStyle = {
     "fillColor": "BlanchedAlmond",
@@ -40,9 +40,11 @@ function plotCord() {
         // shadowSize: [68, 95],
         // shadowAnchor: [22, 94]
     });
+    var markers = L.markerClusterGroup();
     for (ipData in ipDataset) {
-        L.marker([ipDataset[ipData].latitude, ipDataset[ipData].longitude], {icon: myIcon}).bindPopup(popupData(ipDataset[ipData].ip)).openPopup().addTo(mymap);
+        markers.addLayer(L.marker([ipDataset[ipData].latitude, ipDataset[ipData].longitude], {icon: myIcon}).bindPopup(popupData(ipDataset[ipData].ip)).openPopup());
     }
+    mymap.addLayer(markers);
 }
 
 var ipDataRequest = new XMLHttpRequest();
