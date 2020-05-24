@@ -9,17 +9,19 @@ var myStyle = {
     "fillOpacity": 0.7
 };
 
-var popupData = function(ip) {
+const popupData = function(ip) {
     return function() {
-        var popupDataReq = new XMLHttpRequest();
-        popupDataReq.open("GET", "http://localhost:5000/" + ip, false);
+        const ipDataJSON = ip;
+        const popupDataReq = new XMLHttpRequest();
+        popupDataReq.open("GET", "http://localhost:5000/" + ip.ip, false);
         popupDataReq.send();
-        var returnString = "";
-        var dateOptions = {
+        const popupDataJSON = JSON.parse(popupDataReq.responseText);
+        let returnString = '<h1>' + ip.ip + '</h1><br/>' + ipDataJSON.city + ', ' + ipDataJSON.region_name + ', ' + ipDataJSON.country_name + '<br/>' + ipDataJSON.isp + '<br/>';
+        const dateOptions = {
             month: 'short', day: 'numeric', year: 'numeric',
             timeZone: 'America/Los_Angeles' 
         };
-        JSON.parse(popupDataReq.responseText).forEach(element => returnString += (new Date(element * 1000).toLocaleTimeString("en-US", dateOptions) + '<br/>'));
+        popupDataJSON.forEach(element => returnString += (new Date(element * 1000).toLocaleTimeString("en-US", dateOptions) + '<br/>'));
         return returnString;
     }
 }
@@ -42,7 +44,8 @@ function plotCord() {
     });
     var markers = L.markerClusterGroup();
     for (ipData in ipDataset) {
-        markers.addLayer(L.marker([ipDataset[ipData].latitude, ipDataset[ipData].longitude], {icon: myIcon}).bindPopup(popupData(ipDataset[ipData].ip)).openPopup());
+        const popup = L.popup({maxWidth: 600, maxHeight: document.documentElement.clientHeight * .63}).setContent(popupData(ipDataset[ipData]));
+        markers.addLayer(L.marker([ipDataset[ipData].latitude, ipDataset[ipData].longitude], {icon: myIcon}).bindPopup(popup).openPopup());
     }
     mymap.addLayer(markers);
 }
