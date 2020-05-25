@@ -21,7 +21,7 @@ const popupData = function(ip) {
             month: 'short', day: 'numeric', year: 'numeric',
             timeZone: 'America/Los_Angeles' 
         };
-        popupDataJSON.forEach(element => returnString += (new Date(element * 1000).toLocaleTimeString("en-US", dateOptions) + '<br/>'));
+        popupDataJSON.forEach(element => returnString += (new Date(element.time * 1000).toLocaleTimeString("en-US", dateOptions) + ', ' + element.user + '<br/>'));
         return returnString;
     }
 }

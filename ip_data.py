@@ -17,8 +17,11 @@ class IpData:
         self.redisDb.set("ipdata:" + ip, json.dumps(self.ipmap[ip]))
 
     def getIpTimes(self, ip):
-        data = self.redisDb.lrange('iptimes:' + ip, 0, -1)
-        return data
+        dataList = self.redisDb.zrange('iptimes:' + ip, 0, -1)
+        returnData = []
+        for data in dataList:
+            returnData.append(json.loads(data))
+        return returnData
 
     def __init__(self):
         self.ipmap = {}
@@ -47,13 +50,11 @@ class IpData:
 
         matched_pairs = self.redisDb.scan_iter(match='ipdata:*')
         for keyvalue in matched_pairs:
-            print(keyvalue)
             ip = keyvalue.split(':')[1]
             ipData = json.loads(self.redisDb.get(keyvalue))
-            print("{} {}".format(ipData['latitude'], ipData['latitude']))
             self.ipmap[ip] = ipData
 
-        if (latestParsedEntryTime is not None and latestParsedEntryTime > float(latestDbTime)):
+        if (latestParsedEntryTime is not None and latestDbTime is not None and latestParsedEntryTime > float(latestDbTime)):
             print("setting lastLogTime of {}".format(latestParsedEntryTime))
             self.redisDb.set("lastLogTime", latestParsedEntryTime)
 
@@ -61,6 +62,7 @@ class IpData:
         failedPattern = re.compile('.* Failed password for .* from [0-9]*[.][0-9]*[.][0-9]*[.][0-9]* ')
         datePattern = re.compile('^[A-Z][a-z]*[ ]+[0-9]*[ ]+[0-9:]*')
         ipPattern = re.compile('[0-9]*[.][0-9]*[.][0-9]*[.][0-9]*')
+        userPattern = re.compile('Failed password for (invalid user )?')
 
         lastParsedEntryTime = None
         for line in logFile:
@@ -70,11 +72,12 @@ class IpData:
                 ipDate = datetime.strptime(dateStr, '%b %d %H:%M:%S').replace(year=date.today().year)
                 lastParsedEntryTime = ipDate.timestamp()
                 ip = ipPattern.search(lineResult.group(0)).group(0)
+                user = userPattern.split(lineResult.group(0))[2].split()[0]
                 if (latestDbTime is None or float(latestDbTime) < ipDate.timestamp()):
                     if (self.redisDb.get("ipdata:" + ip) is None):
                         print("New ip " + ip)
                         self.fetchNewIpData(ip)
-                    self.redisDb.rpush('iptimes:' + ip, ipDate.timestamp())
+                    self.redisDb.zadd('iptimes:' + ip, {json.dumps({'time': ipDate.timestamp(), 'user': user}): ipDate.timestamp()})
         if latestParsedEntryTime is None or (lastParsedEntryTime is not None and lastParsedEntryTime > latestParsedEntryTime):
             latestParsedEntryTime = lastParsedEntryTime
         return latestParsedEntryTime
